@@ -18,8 +18,6 @@ app.use(cors({
 // Utilizar el enrutador para manejar todas las solicitudes
 app.use(router);
 
-// Resto del código de tu aplicación
-
 // Inicio del servidor
 app.listen(3000, () => {
   console.log('Servidor iniciado en el puerto 3000');
