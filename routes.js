@@ -198,5 +198,41 @@ router.put('/perfil/:id', (req, res) => {
   });
 });
 
+// Endpoint para registrar un nuevo usuario en la tabla `usuario`
+router.post('/usuarios', (req, res) => {
+  const { usuario, contrasena } = req.body;
+  const role = 'user';
+
+  const queryUsuario = 'INSERT INTO usuario (usuario, password, role) VALUES (?, ?, ?)';
+  const valuesUsuario = [usuario, contrasena, role];
+
+  db.query(queryUsuario, valuesUsuario, (error, results) => {
+    if (error) {
+      console.error('Error al registrar el usuario:', error);
+      res.status(500).json({ message: 'Error al registrar el usuario' });
+    } else {
+      const usuarioId = results.insertId;
+      res.status(201).json({ usuarioId });
+    }
+  });
+});
+
+// Endpoint para registrar el perfil en la tabla `perfil_usuario`
+router.post('/perfil_usuario', (req, res) => {
+  const { usuarioId, nombre, correo, direccion, telefono } = req.body;
+
+  const queryPerfil = 'INSERT INTO perfil_usuario (usuario_id, nombre, correo_electronico, direccion, telefono) VALUES (?, ?, ?, ?, ?)';
+  const valuesPerfil = [usuarioId, nombre, correo, direccion, telefono];
+
+  db.query(queryPerfil, valuesPerfil, (error, results) => {
+    if (error) {
+      console.error('Error al registrar el perfil:', error);
+      res.status(500).json({ message: 'Error al registrar el perfil' });
+    } else {
+      res.status(201).json({ message: 'Perfil registrado exitosamente' });
+    }
+  });
+});
+
 
 module.exports = router;
