@@ -1,0 +1,22 @@
+name: Instalar dependencias
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
+      - name: Instalar las dependencias
+        run: npm install
