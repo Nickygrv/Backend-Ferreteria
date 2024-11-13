@@ -1,4 +1,4 @@
-const mysql = require('mysql');
+import mysql from 'mysql';
 
 // Configuración de la conexión a la base de datos
 const dbConfig = {
@@ -8,14 +8,10 @@ const dbConfig = {
     database: 'ferreteria'
 };
 
-// Creación de la conexión
-const connection = mysql.createConnection(dbConfig);
+// Función para obtener una nueva conexión
+const createConnection = () => {
+    return mysql.createConnection(dbConfig);
+};
 
-// Conexión a la base de datos
-connection.connect((error) => {
-  if (error) throw error;
-  console.log('Conexión exitosa a la base de datos');
-});
-
-// Exportación del objeto de conexión
-module.exports = connection;
+// Exportación de la función para crear conexiones
+export { createConnection };
