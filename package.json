@@ -16,5 +16,9 @@
     "mysql": "^2.18.1",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "chai": "^5.1.2",
+    "mocha": "^10.8.2"
   }
 }
