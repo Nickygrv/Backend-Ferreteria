@@ -98,18 +98,20 @@ router.get('/api/login', (req, res) => {
   });
 });
 
-// Ruta para obtener una lista de productos
 router.get('/api/productos', (req, res) => {
-  const query = 'SELECT id, nombre FROM producto';
+  const query = 'SELECT id, nombre, precio FROM producto';
 
   db.query(query, (err, results) => {
     if (err) {
+      console.error('Error en la consulta SQL:', err); // Log de errores
       res.status(500).json({ error: 'Error en el servidor' });
     } else {
+      console.log('Resultados de la consulta:', results); // Log para revisar los datos
       res.status(200).json(results);
     }
   });
 });
+
 
 // Ruta para guardar un pedido
 router.post('/api/pedidos', (req, res) => {
