@@ -249,5 +249,27 @@ router.get('/api/usuarios', (req, res) => {
   });
 });
 
+// Ruta para obtener detalles del usuario y su perfil por ID
+router.get('/api/usuarios/detalles/:id', (req, res) => {
+  const usuarioId = req.params.id;
+
+  const query = `
+      SELECT u.id, u.usuario, u.role, p.nombre, p.correo_electronico, p.direccion, p.telefono
+      FROM usuario u
+      LEFT JOIN perfil_usuario p ON u.id = p.usuario_id
+      WHERE u.id = ?`;
+
+  db.query(query, [usuarioId], (error, results) => {
+      if (error) {
+          console.error('Error al obtener los detalles del usuario:', error);
+          res.status(500).json({ message: 'Error al obtener los detalles del usuario' });
+      } else if (results.length === 0) {
+          res.status(404).json({ message: 'Usuario no encontrado' });
+      } else {
+          res.status(200).json(results[0]); // Devuelve el primer resultado
+      }
+  });
+});
+
 
 export default router;
