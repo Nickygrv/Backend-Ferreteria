@@ -5,15 +5,31 @@ import routes from './routes.js';
 const router = express.Router();
 
 // Ruta para obtener todos los productos
+// Ruta para obtener todos los pedidos con detalles adicionales (nombre de usuario y nombre de producto)
 router.get('/api/pedidos', (req, res) => {
-  const query = 'SELECT * FROM pedido';  // La consulta a tu base de datos
+  const query = `
+    SELECT 
+      p.id AS pedido_id,
+      p.usuario_id,
+      p.producto_id,
+      p.fecha,
+      p.estado,
+      pu.nombre AS nombre_usuario,        -- Nombre del usuario (de la tabla perfil_usuario)
+      pr.nombre AS nombre_producto       -- Nombre del producto (de la tabla producto)
+    FROM pedido p
+    JOIN perfil_usuario pu ON p.usuario_id = pu.id     -- Relación con la tabla perfil_usuario
+    JOIN producto pr ON p.producto_id = pr.id          -- Relación con la tabla producto
+  `;
+
   db.query(query, (error, results) => {
     if (error) {
-      return res.status(500).json({ message: 'Error al obtener los pedidos', error });
+      res.status(500).json({ message: 'Error al obtener los pedidos', error });
+    } else {
+      res.status(200).json(results); // Devuelve los resultados con los datos del usuario y producto
     }
-    return res.status(200).json(results);  // Devuelve los resultados
   });
 });
+
 
 // Ruta para guardar un producto
 router.post('/productos', (req, res) => {
