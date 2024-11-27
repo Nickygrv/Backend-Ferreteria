@@ -1,17 +1,17 @@
 import { createConnection } from './bdd.js';
 const db = createConnection();
 import express from 'express';
+import routes from './routes.js';
 const router = express.Router();
 
 // Ruta para obtener todos los productos
-router.get('/api/datos', (req, res) => {
-  db.query('SELECT * FROM producto', (error, results) => {
+router.get('/api/pedidos', (req, res) => {
+  const query = 'SELECT * FROM pedido';  // La consulta a tu base de datos
+  db.query(query, (error, results) => {
     if (error) {
-      console.error('Error al obtener los datos de la base de datos:', error);
-      res.status(500).json({ error: 'Error al obtener los datos de la base de datos' });
-    } else {
-      res.json(results);
+      return res.status(500).json({ message: 'Error al obtener los pedidos', error });
     }
+    return res.status(200).json(results);  // Devuelve los resultados
   });
 });
 
@@ -98,6 +98,7 @@ router.get('/api/login', (req, res) => {
   });
 });
 
+// Ruta para obtener productos con su id y nombre
 router.get('/api/productos', (req, res) => {
   const query = 'SELECT id, nombre, precio FROM producto';
 
@@ -112,55 +113,69 @@ router.get('/api/productos', (req, res) => {
   });
 });
 
-
-// Ruta para guardar un pedido
-router.post('/api/pedidos', (req, res) => {
-  const { usuario_id, nombreProducto, fecha, cantidad } = req.body;
-  const getProductQuery = 'SELECT id FROM producto WHERE nombre = ?';
-
-  db.query(getProductQuery, [nombreProducto], (getProductError, getProductResults) => {
-    if (getProductError) {
-      console.error('Error al obtener el ID del producto:', getProductError);
-      res.status(500).json({ message: 'Error al obtener el ID del producto' });
-    } else if (getProductResults.length === 0) {
-      res.status(404).json({ message: 'Producto no encontrado' });
+// Ruta para obtener todos los pedidos
+router.get('/api/pedidos', (req, res) => {
+  const query = 'SELECT * FROM pedido'; // Ajusta la consulta según tu base de datos
+  db.query(query, (error, results) => {
+    if (error) {
+      res.status(500).json({ message: 'Error al obtener los pedidos', error });
     } else {
-      const producto_id = getProductResults[0].id;
-      const insertQuery = 'INSERT INTO pedido (usuario_id, producto_id, fecha, cantidad) VALUES (?, ?, ?, ?)';
-      const insertValues = [usuario_id, producto_id, fecha, cantidad];
-
-      db.query(insertQuery, insertValues, (insertError) => {
-        if (insertError) {
-          console.error('Error al guardar el pedido:', insertError);
-          res.status(500).json({ message: 'Error al guardar el pedido' });
-        } else {
-          // Actualiza el número de ventas
-          const updateQuery = 'UPDATE producto SET ventas = ventas + ? WHERE id = ?';
-          const updateValues = [cantidad, producto_id];
-
-          db.query(updateQuery, updateValues, (updateError) => {
-            if (updateError) {
-              console.error('Error al actualizar las ventas:', updateError);
-              res.status(500).json({ message: 'Error al actualizar las ventas' });
-            } else {
-              // Actualiza el stock
-              const updateStockQuery = 'UPDATE producto SET stock = stock - ? WHERE id = ?';
-              const updateStockValues = [cantidad, producto_id];
-
-              db.query(updateStockQuery, updateStockValues, (updateStockError) => {
-                if (updateStockError) {
-                  console.error('Error al actualizar el stock:', updateStockError);
-                  res.status(500).json({ message: 'Error al actualizar el stock' });
-                } else {
-                  res.status(200).json({ message: 'Pedido y stock actualizados exitosamente' });
-                }
-              });
-            }
-          });
-        }
-      });
+      res.status(200).json(results); // Devuelve los resultados (pedidos) al frontend
     }
   });
+});
+
+// Ruta para registrar un nuevo pedido
+router.post('/api/pedidos', async (req, res) => {
+  const { usuario_id, nombreProducto, cantidad, fecha } = req.body;
+
+  try {
+    // 1. Validar que el producto existe y obtener su stock actual
+    const [producto] = await db.query(
+      'SELECT id, stock FROM producto WHERE nombre = ?',
+      [nombreProducto]
+    );
+
+    if (!producto || producto.length === 0) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+
+    const productoId = producto[0].id;
+    const stockActual = producto[0].stock;
+
+    // 2. Verificar si hay stock suficiente
+    if (cantidad > stockActual) {
+      return res.status(400).json({
+        error: `Stock insuficiente. Solo hay ${stockActual} unidades disponibles.`,
+      });
+    }
+
+    // 3. Registrar el pedido en la tabla de pedidos
+    const [result] = await db.query(
+      'INSERT INTO pedidos (usuario_id, producto_id, cantidad, fecha) VALUES (?, ?, ?, ?)',
+      [usuario_id, productoId, cantidad, fecha]
+    );
+
+    // 4. Calcular la fecha límite para la recogida (24 horas después)
+    const fechaLimite = new Date();
+    fechaLimite.setHours(fechaLimite.getHours() + 24); // 24 horas después
+
+    // 5. Actualizar el stock del producto en la base de datos
+    const nuevoStock = stockActual - cantidad;
+    await db.query('UPDATE producto SET stock = ? WHERE id = ?', [
+      nuevoStock,
+      productoId,
+    ]);
+
+    // 6. Responder con éxito, incluyendo la fecha de recogida
+    res.status(201).json({
+      message: 'Pedido registrado exitosamente',
+      fechaLimite: fechaLimite.toISOString(), // Devolver la fecha límite
+    });
+  } catch (error) {
+    console.error('Error al registrar el pedido:', error);
+    res.status(500).json({ error: 'Error al registrar el pedido' });
+  }
 });
 
 // Ruta para obtener el perfil de un usuario por ID
@@ -201,7 +216,7 @@ router.put('/perfil/:id', (req, res) => {
   });
 });
 
-// Endpoint para registrar un nuevo usuario en la tabla `usuario`
+// Ruta para registrar un nuevo usuario
 router.post('/usuarios', (req, res) => {
   const { usuario, contrasena } = req.body;
   const role = 'user';
@@ -220,7 +235,7 @@ router.post('/usuarios', (req, res) => {
   });
 });
 
-// Endpoint para registrar el perfil en la tabla `perfil_usuario`
+// Ruta para registrar el perfil de un usuario
 router.post('/perfil_usuario', (req, res) => {
   const { usuarioId, nombre, correo, direccion, telefono } = req.body;
 
@@ -270,6 +285,5 @@ router.get('/api/usuarios/detalles/:id', (req, res) => {
       }
   });
 });
-
 
 export default router;

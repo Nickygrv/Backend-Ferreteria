@@ -191,6 +191,17 @@
       }
     },
     "/api/pedidos": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
       "post": {
         "description": "",
         "parameters": [
@@ -206,10 +217,10 @@
                 "nombreProducto": {
                   "example": "any"
                 },
-                "fecha": {
+                "cantidad": {
                   "example": "any"
                 },
-                "cantidad": {
+                "fecha": {
                   "example": "any"
                 }
               }
@@ -217,8 +228,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "404": {
             "description": "Not Found"
