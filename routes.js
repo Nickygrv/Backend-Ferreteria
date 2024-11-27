@@ -127,14 +127,35 @@ router.get('/api/login', (req, res) => {
 
 // Ruta para obtener una lista de productos
 router.get('/api/productos', (req, res) => {
-  const query = 'SELECT * FROM producto';
+  const minPrice = parseFloat(req.query.min) || 0;
+  const maxPrice = parseFloat(req.query.max) || 999999;
+  const page = parseInt(req.query.page) || 0;
+  const size = parseInt(req.query.size) || 10;
+  const filter = req.query.filter || ''; // Obtener filtro de búsqueda
 
-  db.query(query, (err, results) => {
+  const offset = page * size;
+
+  // Ajustar la consulta SQL para incluir el filtro de búsqueda
+  const query = `
+    SELECT * FROM producto 
+    WHERE precio >= ? AND precio <= ? 
+    AND LOWER(nombre) LIKE ?
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(query, [minPrice, maxPrice, `%${filter.toLowerCase()}%`, size, offset], (err, results) => {
     if (err) {
-      res.status(500).json({ error: 'Error en el servidor' });
-    } else {
-      res.status(200).json(results);
+      return res.status(500).json({ error: 'Error al obtener los productos filtrados' });
     }
+
+    // Obtener el total de productos
+    db.query('SELECT COUNT(*) AS total FROM producto WHERE precio >= ? AND precio <= ? AND LOWER(nombre) LIKE ?', [minPrice, maxPrice, `%${filter.toLowerCase()}%`], (err, countResult) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error al obtener el total de productos' });
+      }
+      const total = countResult[0].total;
+      res.status(200).json({ products: results, total: total });
+    });
   });
 });
 
@@ -290,26 +311,30 @@ router.get('/api/usuarios', (req, res) => {
 });
 
 // Ruta para obtener detalles del usuario y su perfil por ID
-router.get('/api/usuarios/detalles/:id', (req, res) => {
-  const usuarioId = req.params.id;
+router.get('/api/productos/filtrar', (req, res) => {
+  const minPrice = req.query.min || 0;  // Precio mínimo, por defecto 0
+  const maxPrice = req.query.max;  // Precio máximo, debe ser proporcionado
 
-  const query = `
-      SELECT u.id, u.usuario, u.role, p.nombre, p.correo_electronico, p.direccion, p.telefono
-      FROM usuario u
-      LEFT JOIN perfil_usuario p ON u.id = p.usuario_id
-      WHERE u.id = ?`;
+  if (!maxPrice) {
+    return res.status(400).json({ error: 'El parámetro "max" es requerido' });
+  }
 
-  db.query(query, [usuarioId], (error, results) => {
-      if (error) {
-          console.error('Error al obtener los detalles del usuario:', error);
-          res.status(500).json({ message: 'Error al obtener los detalles del usuario' });
-      } else if (results.length === 0) {
-          res.status(404).json({ message: 'Usuario no encontrado' });
-      } else {
-          res.status(200).json(results[0]); // Devuelve el primer resultado
-      }
+  // Asegurarse de que los precios sean valores válidos
+  if (isNaN(minPrice) || isNaN(maxPrice)) {
+    return res.status(400).json({ error: 'Los precios deben ser valores numéricos' });
+  }
+
+  // Realizar la consulta con ambos filtros de precio
+  const query = 'SELECT * FROM producto WHERE precio >= ? AND precio <= ?';
+
+  db.query(query, [minPrice, maxPrice], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al obtener los productos filtrados' });
+    }
+    res.status(200).json(results);  // Devuelve los resultados filtrados
   });
 });
+
 
 
 export default router;
