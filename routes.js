@@ -42,6 +42,48 @@ router.get('/api/datos', (req, res) => {
   });
 });
 
+// Nueva Ruta para obtener productos filtrados con paginación
+router.get('/api/productos-filtrados', (req, res) => {
+  const { min, max, page, size, filter } = req.query;
+
+  const minPrice = parseFloat(min) || 0;
+  const maxPrice = parseFloat(max) || Number.MAX_VALUE;
+  const pageNumber = parseInt(page) || 0;
+  const pageSize = parseInt(size) || 10;
+  const searchFilter = filter ? `%${filter.toLowerCase()}%` : '%';
+
+  // Consulta SQL para obtener productos filtrados
+  const offset = pageNumber * pageSize;
+
+  const query = `
+    SELECT SQL_CALC_FOUND_ROWS id, nombre, precio 
+    FROM producto 
+    WHERE precio BETWEEN ? AND ? 
+    AND LOWER(nombre) LIKE ?
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(query, [minPrice, maxPrice, searchFilter, pageSize, offset], (error, products) => {
+    if (error) {
+      console.error('Error al cargar los productos filtrados:', error);
+      res.status(500).json({ message: 'Error al cargar los productos filtrados', error });
+    } else {
+      // Obtener el número total de productos filtrados
+      db.query('SELECT FOUND_ROWS() as total', (error, totalResults) => {
+        if (error) {
+          console.error('Error al obtener el total de productos:', error);
+          res.status(500).json({ message: 'Error al obtener el total de productos' });
+        } else {
+          res.json({
+            products: products,
+            total: totalResults[0].total
+          });
+        }
+      });
+    }
+  });
+});
+
 // Ruta para guardar un producto
 router.post('/productos', (req, res) => {
   const { nombre, imagen, descripcion, precio, stock } = req.body;
@@ -150,7 +192,6 @@ router.post('/api/pedidos', (req, res) => {
 });
 
 // Ruta para obtener los detalles del usuario y su perfil por ID
-// Asegúrate de que la ruta está configurada
 router.get('/api/usuarios/detalles/:id', (req, res) => {
   const usuarioId = req.params.id;
   const query = 'SELECT * FROM perfil_usuario WHERE id = ?';
@@ -168,7 +209,6 @@ router.get('/api/usuarios/detalles/:id', (req, res) => {
 });
 
 // Ruta para obtener todos los usuarios
-// Ruta para obtener todos los usuarios
 router.get('/api/usuarios', (req, res) => {
   const query = 'SELECT id, usuario, role FROM usuario';
   db.query(query, (error, results) => {
@@ -180,6 +220,5 @@ router.get('/api/usuarios', (req, res) => {
     }
   });
 });
-
 
 export default router;
