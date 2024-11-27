@@ -4,7 +4,6 @@ import express from 'express';
 import routes from './routes.js';
 const router = express.Router();
 
-// Ruta para obtener todos los productos
 // Ruta para obtener todos los pedidos con detalles adicionales (nombre de usuario y nombre de producto)
 router.get('/api/pedidos', (req, res) => {
   const query = `
@@ -30,6 +29,18 @@ router.get('/api/pedidos', (req, res) => {
   });
 });
 
+
+// Ruta para obtener todos los productos
+router.get('/api/datos', (req, res) => {
+  db.query('SELECT * FROM producto', (error, results) => {
+    if (error) {
+      console.error('Error al obtener los datos de la base de datos:', error);
+      res.status(500).json({ error: 'Error al obtener los datos de la base de datos' });
+    } else {
+      res.json(results);
+    }
+  });
+});
 
 // Ruta para guardar un producto
 router.post('/productos', (req, res) => {
@@ -114,16 +125,14 @@ router.get('/api/login', (req, res) => {
   });
 });
 
-// Ruta para obtener productos con su id y nombre
+// Ruta para obtener una lista de productos
 router.get('/api/productos', (req, res) => {
-  const query = 'SELECT id, nombre, precio FROM producto';
+  const query = 'SELECT * FROM producto';
 
   db.query(query, (err, results) => {
     if (err) {
-      console.error('Error en la consulta SQL:', err); // Log de errores
       res.status(500).json({ error: 'Error en el servidor' });
     } else {
-      console.log('Resultados de la consulta:', results); // Log para revisar los datos
       res.status(200).json(results);
     }
   });
@@ -301,5 +310,6 @@ router.get('/api/usuarios/detalles/:id', (req, res) => {
       }
   });
 });
+
 
 export default router;
