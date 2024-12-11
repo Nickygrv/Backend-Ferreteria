@@ -147,12 +147,21 @@ router.get('/productos/:id', (req, res) => {
 
 // Ruta para actualizar un producto por ID
 router.put('/productos/:id', (req, res) => {
-  const productId = req.params.id;
   const { nombre, imagen, descripcion, precio, stock } = req.body;
-  const query = 'UPDATE producto SET nombre = ?, imagen = ?, descripcion = ?, precio = ?, stock = ? WHERE id = ?';
-  const values = [nombre, imagen, descripcion, precio, stock, productId];
 
-  db.query(query, values, (error) => {
+  // Validación de campos obligatorios
+  if (!nombre || !precio || !descripcion || !stock) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  if (precio <= 0 || stock <= 0) {
+    return res.status(400).json({ message: 'El precio y el stock deben ser mayores a 0' });
+  }
+
+  const query = 'UPDATE producto SET nombre = ?, imagen = ?, descripcion = ?, precio = ?, stock = ? WHERE id = ?';
+  const values = [nombre, imagen, descripcion, precio, stock, req.params.id];
+
+  db.query(query, values, (error, results) => {
     if (error) {
       console.error('Error al actualizar el producto:', error);
       res.status(500).json({ message: 'Error al actualizar el producto' });
