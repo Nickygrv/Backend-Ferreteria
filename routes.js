@@ -229,6 +229,7 @@ router.get('/api/usuarios/detalles/:id', (req, res) => {
   });
 });
 
+
 // Ruta para obtener todos los usuarios
 router.get('/api/usuarios', (req, res) => {
   const query = 'SELECT id, usuario, role FROM usuario';
