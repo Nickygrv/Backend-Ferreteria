@@ -242,5 +242,86 @@ router.get('/api/usuarios', (req, res) => {
     }
   });
 });
+router.put('/api/usuarios/detalles/:id', (req, res) => {
+  const usuarioId = req.params.id;
+  const { nombre, correo_electronico, direccion, telefono } = req.body;
+
+  // Validación de campos obligatorios
+  if (!nombre || !correo_electronico || !direccion || !telefono) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  const query = `
+    UPDATE perfil_usuario 
+    SET nombre = ?, correo_electronico = ?, direccion = ?, telefono = ? 
+    WHERE id = ?
+  `;
+
+  db.query(query, [nombre, correo_electronico, direccion, telefono, usuarioId], (error, results) => {
+    if (error) {
+      console.error('Error al actualizar el perfil del usuario:', error);
+      return res.status(500).json({ message: 'Error al actualizar el perfil del usuario' });
+    }
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.json({ message: 'Perfil actualizado exitosamente' });
+  });
+});
+// Ruta para obtener los 3 productos más vendidos
+router.get('/api/producto/mas-vendidos', (req, res) => {
+  const query = `
+    SELECT id, nombre, imagen, precio, ventas 
+    FROM producto 
+    ORDER BY ventas DESC 
+    LIMIT 3
+  `;
+
+  db.query(query, (error, results) => {
+    if (error) {
+      console.error('Error al obtener los productos más vendidos:', error);
+      res.status(500).json({ message: 'Error al obtener los productos más vendidos', error });
+    } else {
+      res.status(200).json(results);
+    }
+  });
+});
+// Nueva ruta para obtener productos con paginación, solo imagen, nombre y precio
+router.get('/api/productos-con-paginacion', (req, res) => {
+  const { page, size } = req.query;
+
+  const pageNumber = parseInt(page) || 1; // Página por defecto 1
+  const pageSize = parseInt(size) || 3;   // Tamaño por defecto 3 productos por página
+
+  const offset = (pageNumber - 1) * pageSize;
+
+  // Consulta SQL para obtener productos con solo los campos requeridos
+  const query = `
+    SELECT id, nombre, imagen, precio
+    FROM producto
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(query, [pageSize, offset], (error, products) => {
+    if (error) {
+      console.error('Error al cargar los productos:', error);
+      return res.status(500).json({ message: 'Error al cargar los productos', error });
+    } else {
+      // Obtener el número total de productos
+      db.query('SELECT COUNT(*) as total FROM producto', (error, totalResults) => {
+        if (error) {
+          console.error('Error al obtener el total de productos:', error);
+          return res.status(500).json({ message: 'Error al obtener el total de productos' });
+        } else {
+          res.json({
+            products: products,
+            total: totalResults[0].total
+          });
+        }
+      });
+    }
+  });
+});
+
 
 export default router;
