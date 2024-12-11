@@ -87,6 +87,16 @@ router.get('/api/productos-filtrados', (req, res) => {
 // Ruta para guardar un producto
 router.post('/productos', (req, res) => {
   const { nombre, imagen, descripcion, precio, stock } = req.body;
+
+  // Validación de campos obligatorios
+  if (!nombre || !precio || !descripcion || !stock) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  if (precio <= 0 || stock <= 0) {
+    return res.status(400).json({ message: 'El precio y el stock deben ser mayores a 0' });
+  }
+
   const ventainicial = 0;
   const query = 'INSERT INTO producto (nombre, imagen, descripcion, precio, stock, ventas) VALUES (?, ?, ?, ?, ?, ?)';
   const values = [nombre, imagen, descripcion, precio, stock, ventainicial];
@@ -100,6 +110,8 @@ router.post('/productos', (req, res) => {
     }
   });
 });
+
+
 
 // Ruta para eliminar un producto por ID
 router.delete('/productos/:id', (req, res) => {
